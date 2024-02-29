@@ -1,10 +1,11 @@
 'use client'
 
-import { useAccount, useConnect, useDisconnect, useSendTransaction } from 'wagmi'
+import { useAccount, useConnect, useDisconnect, useSendTransaction, useWriteContract } from 'wagmi'
 import { parseEther} from 'viem'
 
 function App() {
   const account = useAccount()
+  const { data: contractDataHash, isPending: demoIsPending, writeContract } = useWriteContract()
   const { connectors, connect, status, error } = useConnect()
   const { disconnect } = useDisconnect()
 
@@ -29,6 +30,24 @@ function App() {
       </div>
       <SendTransaction/>
 
+<div>Test contract interaction</div>
+<button 
+      onClick={() => 
+        writeContract({ 
+          abi,
+          address: '0x6b175474e89094c44da98b954eedeac495271d0f',
+          functionName: 'transferFrom',
+          args: [
+            '0xd2135CfB216b74109775236E36d4b433F1DF507B',
+            '0xA0Cf798816D4b9b9866b5330EEa46a18382f251e',
+            BigInt(123),
+          ],
+       })
+      }
+    >
+      Transfer
+    </button>
+    <div>{demoIsPending ? 'Pending...' : ''}</div>
       <div>
         <h2>Connect</h2>
         {connectors.map((connector) => (
@@ -42,6 +61,8 @@ function App() {
         ))}
         <div>{status}</div>
         <div>{error?.message}</div>
+
+
       </div>
     </>
   )
@@ -52,13 +73,19 @@ function SendTransaction() {
     isPending, 
     sendTransaction 
   } = useSendTransaction() 
+    console.log("🚀 ~ SendTransaction ~ isPending:", isPending)
 
   async function submit(e: React.FormEvent<HTMLFormElement>) { 
     e.preventDefault() 
     const formData = new FormData(e.target as HTMLFormElement) 
     const to = formData.get('address') as `0x${string}` 
     const value = formData.get('value') as string 
-    sendTransaction({ to, value: parseEther(value) }) 
+    try {
+      
+      sendTransaction({ to, value: parseEther(value) }) 
+    } catch (error) {
+      console.log(error)
+    }
   } 
 
   return (
@@ -78,3 +105,27 @@ function SendTransaction() {
 }
 
 export default App
+
+const abi = [
+  {
+    type: 'function',
+    name: 'approve',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'transferFrom',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'sender', type: 'address' },
+      { name: 'recipient', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ type: 'bool' }],
+  },
+] as const
